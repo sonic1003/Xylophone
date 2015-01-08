@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class PlaybackController : MonoBehaviour
 {
-    private GameObject toggleButtonObj;
+    private GameObject playButtonObj;
     private UIButton playButton;
 
     private GameObject playhead;
@@ -26,9 +26,9 @@ public class PlaybackController : MonoBehaviour
     private bool isInTimeLimit = true;
 
     void Start()
-    {
-        toggleButtonObj = GameObject.Find("PlayStop");
-        playButton = toggleButtonObj.GetComponent<UIButton>();
+    { 
+        playButtonObj = GameObject.Find("PlayStop");
+        playButton = playButtonObj.GetComponent<UIButton>();
 
         playhead = GameObject.Find("Playhead");
         RecordedNotes = GameObject.Find("Recorded Notes");
@@ -43,7 +43,10 @@ public class PlaybackController : MonoBehaviour
         if (startTime != -1)
         {
             if ((Time.time - startTime) > 5f)
+            {
                 isInTimeLimit = false;
+                EnablePlayButton();
+            }
         }
     }
 
@@ -52,6 +55,8 @@ public class PlaybackController : MonoBehaviour
     {
         if (timestamp.Count == 0 && notes.Count == 0)
         {
+            DisablePlayButton();
+
             StartPlayhead();
 
             lastTimestamp = Time.time;
@@ -88,6 +93,7 @@ public class PlaybackController : MonoBehaviour
     public void Reset()
     {
         StopAllCoroutines();
+        EnablePlayButton();
 
         startTime = -1;
         lastTimestamp = 0;
@@ -96,6 +102,7 @@ public class PlaybackController : MonoBehaviour
         //playhead.GetComponent<Animator>().SetBool("StartPlayhead", false);
         playhead.GetComponent<Animator>().Play(Animator.StringToHash("Idle"));
         isInTimeLimit = true;
+        isInPlayback = false;
 
         playButton.normalSprite = "Xylo_Play";
         playButton.pressedSprite = "Xylo_Play_active";
@@ -110,11 +117,14 @@ public class PlaybackController : MonoBehaviour
 
     public void PlayNotes()
     {
+        if (notes.Count == 0 || timestamp.Count == 0)
+            return;
+
         if (isInPlayback != true)
         {
             isInPlayback = true;
 
-            TogglePlayButton();
+            TogglePlayButtonSprite();
 
             StartPlayhead();
             StartCoroutine(ReadNotesSequence());
@@ -129,12 +139,24 @@ public class PlaybackController : MonoBehaviour
             soundManger.PlayNote(notes [i]);
         }
         isInPlayback = false;
-        TogglePlayButton();
+        TogglePlayButtonSprite();
     }
 
 
-    void TogglePlayButton()
+    void EnablePlayButton()
     {
+        playButtonObj.GetComponent<BoxCollider>().enabled = true;
+    }
+
+    void DisablePlayButton()
+    {
+        playButtonObj.GetComponent<BoxCollider>().enabled = false;
+    }
+
+
+    void TogglePlayButtonSprite()
+    {
+
         if (isInPlayback)
         {
             playButton.normalSprite = "Xylo_Stop";
@@ -154,18 +176,9 @@ public class PlaybackController : MonoBehaviour
         if (playhead.GetComponent<Animator>().GetCurrentAnimatorStateInfo(0).nameHash == Animator.StringToHash("Base.Idle"))
         {
             playhead.GetComponent<Animator>().SetTrigger("StartPlayhead");
-            //StartCoroutine(StopPlayhead());
         }
     }
 
-    IEnumerator StopPlayhead()
-    {
-        while (isInTimeLimit || isInPlayback)
-        {
-            yield return null;
-        }
-        playhead.GetComponent<Animator>().SetBool("StartPlayhead", false);
-    }
 
 }
 
